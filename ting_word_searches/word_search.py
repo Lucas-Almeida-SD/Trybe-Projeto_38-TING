@@ -1,32 +1,53 @@
-def add_file_information_to_list(info_list, file, word, include_content):
-    info_file = {
-        "palavra": word,
-        "arquivo": file["nome_do_arquivo"],
-        "ocorrencias": list()
-    }
+def add_file_information_to_list(
+    info_list,
+    file_name,
+    row,
+    row_number,
+    word,
+    include_content
+):
+    if not len(info_list) or info_list[-1]["arquivo"] != file_name:
+        info_list.append({
+            "palavra": word,
+            "arquivo": file_name,
+            "ocorrencias": list()
+        })
 
-    for row_index in range(file["qtd_linhas"]):
-        row = file["linhas_do_arquivo"][row_index]
-        row_number = row_index + 1
+    info_list[-1]["ocorrencias"].append({"linha": row_number})
 
-        if word.lower() in row.lower() and include_content:
-            info_file["ocorrencias"].append(
-                {"linha":  row_number, "conteudo": row}
-            )
-
-        elif word.lower() in row.lower():
-            info_file["ocorrencias"].append({"linha": row_number})
-
-    if len(info_file["ocorrencias"]):
-        info_list.append(info_file)
+    if include_content:
+        info_list[-1]["ocorrencias"][-1].update({"conteudo": row})
 
 
-def create_info_list(word, instance, include_content):
-    info_list = list()
+def create_unstructured_files_list(instance):
+    unstructured_files_list = list()
 
     for file_index in range(len(instance)):
         file = instance.search(file_index)
-        add_file_information_to_list(info_list, file, word, include_content)
+        file_info = [file["nome_do_arquivo"]] * file["qtd_linhas"]
+        file_zip = list(zip(file_info, file["linhas_do_arquivo"]))
+        unstructured_files_list.extend(file_zip)
+
+    return unstructured_files_list
+
+
+def create_info_list(word, instance, include_content):
+    unstructured_files_list = create_unstructured_files_list(instance)
+    file_name, row, row_num = '', '', 0
+    info_list = list()
+
+    for file in unstructured_files_list:
+        if file[0] != file_name:
+            file_name = file[0]
+            row_num = 0
+
+        row = file[1]
+        row_num += 1
+
+        if word.lower() in row.lower():
+            add_file_information_to_list(
+                info_list, file_name, row, row_num, word, include_content
+            )
 
     return info_list
 
